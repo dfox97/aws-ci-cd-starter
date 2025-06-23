@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          node-version: "18"
+
+      - name: Cache Node.js dependencies
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ./node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('./package-lock.json') }}
+
+      - name: Install dependencies
+        working-directory: ./
+        run: npm ci
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: build
+        working-directory: ./
+        run: npm run build
+
+      - name: Deploy
+        working-directory: ./
+        run: npx cdk deploy --require-approval never
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
